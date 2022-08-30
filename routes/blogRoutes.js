@@ -6,7 +6,6 @@ const redis = require('redis');
 const redisUrl = process.env.REDIS_URL;
 const client = redis.createClient(redisUrl);
 const util = require('util');
-const { channel } = require('diagnostics_channel');
 
 const Blog = mongoose.model('Blog');
 
@@ -21,26 +20,9 @@ module.exports = app => {
   });
 
   app.get('/api/blogs', requireLogin, async (req, res) => {
-    // Do we have any cached data in redis related
-    // to this query
-    client.get = util.promisify(client.get)
-    const cachedBlogs = await client.get(req.user.id);
+     const blogs = await Blog.find({ _user: req.user.id});
 
-    // if yes then respond to the request right away and return
-
-    if(cachedBlogs){
-      console.log('Serving from cache')
-      return res.send(JSON.parse(cachedBlogs));
-    }
-
-    // if no, we need to respond to request and updated our cache to store the data
-
-    const blogs = await Blog.find({ _user: req.user.id });
-    console.log('Serving from mongo')
-
-    res.send(blogs);
-
-    client.set(req.user.id, JSON.stringify(blogs));
+     res.send(blogs);
   });
 
   app.post('/api/blogs', requireLogin, async (req, res) => {
